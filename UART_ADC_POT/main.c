@@ -254,7 +254,7 @@ void MefLeerTrama(void){
 
 		case EST_MEF_LEER_TRAMA_INICIO_TRAMA:
 
-		if(buffer[0]==INICIO_DE_TRAMA){
+		if(buffer[0]==INICIO_DE_TRAMA){ //comienzo de trama
 			index_buffer = 0;
 			buffer_instruccion[index_buffer] = buffer[0];
 			index_buffer++;
