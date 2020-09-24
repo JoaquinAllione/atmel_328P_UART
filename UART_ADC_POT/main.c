@@ -179,13 +179,53 @@ int16_t adc_value = 0;
 
 #define CONV_init() ADCSRA |= (1<<ADSC) //inicia convercion
 
+int8_t channel_select = 0;
+
 ISR(ADC_vect){
 	adc_value = ADC;
 	uint8_t buffer[4];
 	itoa(adc_value, buffer,10);
-	UART_write_txt(":P01:");
+	if(channel_select == 0){
+		UART_write_txt(":P01:");
+	}else if (channel_select == 1)
+	{
+		UART_write_txt(":P02:");
+	}else if (channel_select == 2)
+	{
+		UART_write_txt(":P03:");
+	}
+	
 	UART_write_txt(buffer);
 	UART_write(FINAL_DE_TRAMA);
+}
+
+#define CHANNEL_ADC0 0
+#define CHANNEL_ADC1 1
+#define CHANNEL_ADC2 2
+
+void ADC_Channel_Select(int8_t channel){
+	
+	if (channel == 0)
+	{
+		channel_select = 0;
+		ADMUX &= ~(1<<MUX3); //ADC0    0000
+		ADMUX &= ~(1<<MUX2);
+		ADMUX &= ~(1<<MUX1);
+		ADMUX &= ~(1<<MUX0);
+	}else if(channel == 1){
+		channel_select = 1;
+		ADMUX &= ~(1<<MUX3); //ADC1    0001
+		ADMUX &= ~(1<<MUX2);
+		ADMUX &= ~(1<<MUX1);
+		ADMUX |= (1<<MUX0);
+	}else if (channel == 2)
+	{
+		channel_select = 2;
+		ADMUX &= ~(1<<MUX3); //ADC2    0011
+		ADMUX &= ~(1<<MUX2);
+		ADMUX |= (1<<MUX1);
+		ADMUX |= (1<<MUX0);
+	}
 }
 
 void ADC_init(void){
@@ -197,10 +237,18 @@ void ADC_init(void){
 	ADMUX &= ~(1<<REFS1);
 	ADMUX |= (1<<REFS0); //referencia externa
 
-	ADMUX &= ~(1<<MUX3); //ADC0
-	ADMUX &= ~(1<<MUX2);
-	ADMUX &= ~(1<<MUX1);
-	ADMUX &= ~(1<<MUX0);
+	ADC_Channel_Select(CHANNEL_ADC0);
+
+	/*
+	ADC0  0000
+	ADC1  0001
+	ADC2  0010
+	ADC3  0011
+	ADC4  0100
+	ADC5  0101
+	ADC6  0110
+	ADC7  1000
+	*/
 
 	ADCSRA |= (1<<ADEN);//ADC activado
 
@@ -291,7 +339,7 @@ void MefLeerTrama(void){
 
 		case EST_MEF_LEER_TRAMA_3ER_CARACTER:
 
-		if(buffer[0]=='1'){
+		if((buffer[0]=='1')||(buffer[0]=='2')||(buffer[0]=='3')){
 			buffer_instruccion[index_buffer] = buffer[0];
 			index_buffer++;
 			estMefLeerTrama = EST_MEF_LEER_TRAMA_FIN_TRAMA;
@@ -319,6 +367,23 @@ void MefLeerTrama(void){
 		
 		if (strcmp(buffer_instruccion, ":P01\n")==0)
 		{
+			ADC_Channel_Select(CHANNEL_ADC0);
+			CONV_init();
+			clear_buffer_instruc(buffer_instruccion);
+			estMefLeerTrama = EST_MEF_LEER_TRAMA_INICIO_TRAMA;
+			break;
+		}
+		if (strcmp(buffer_instruccion, ":P02\n")==0)
+		{
+			ADC_Channel_Select(CHANNEL_ADC1);
+			CONV_init();
+			clear_buffer_instruc(buffer_instruccion);
+			estMefLeerTrama = EST_MEF_LEER_TRAMA_INICIO_TRAMA;
+			break;
+		}
+		if (strcmp(buffer_instruccion, ":P03\n")==0)
+		{
+			ADC_Channel_Select(CHANNEL_ADC2);
 			CONV_init();
 			clear_buffer_instruc(buffer_instruccion);
 			estMefLeerTrama = EST_MEF_LEER_TRAMA_INICIO_TRAMA;
